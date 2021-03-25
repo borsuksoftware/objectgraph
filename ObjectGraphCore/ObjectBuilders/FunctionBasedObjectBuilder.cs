@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace BorsukSoftware.ObjectGraph.ObjectBuilders
 {
+	/// <summary>
+	/// Object builder which bases its behaviour off the supplied functions
+	/// </summary>
+	/// <typeparam name="TAddress">The type of the address</typeparam>
 	public class FunctionBasedObjectBuilder<TAddress> : IObjectBuilder<TAddress>
 	{
 		#region Data Model
@@ -56,7 +60,6 @@ namespace BorsukSoftware.ObjectGraph.ObjectBuilders
 		public IDependencySet<TAddress> GetAdditionalDependencies( IObjectBuilderGetAdditionalDependenciesContext<TAddress> context, TAddress address, IBuiltDependencies<TAddress> dependencies )
 		{
 			return this.GetAdditionalDependenciesFunc( context, address, dependencies );
-			throw new NotImplementedException();
 		}
 
 		#endregion
