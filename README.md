@@ -72,9 +72,22 @@ The graph itself is in 2 parts:
 
 The graph works in an asynchronous fashion with all interactions with it for addresses returning objects containing wait handles, so a user can request multiple values to be constructed and come back to them later. Dependencies by default are generated at the same time as the request for them to be built is originally mdae as they're assumed to be quick to be generated, but an object builder may flag to the framework that they'll take a while at which point, they'll be run on the task queue.
 
-Node building is delegated to a 'task runner' which is passed in. This is given tasks as soon as they are logically ready to be run and so the choice of how parallelisation is performned is entirely up to the task runner. The usual approach here is to have a multithreaded runner, with 1 thread per available core to maximise throughput. However, the task runners may do something more clever based off requirements, e.g. in one use-case builders might be split into 2 use-cases, data fetching and CPU bound items; the task runner could maintain 2 job queues / threadpools to maximise performance/
+Node building is delegated to a 'task runner' which is passed in. This is given tasks as soon as they are logically ready to be run and so the choice of how parallelisation is performned is entirely up to the task runner. The usual approach here is to have a multithreaded runner, with 1 thread per available core to maximise throughput. However, the task runners may do something more clever based off requirements, e.g. in one use-case builders might be split into 2 use-cases, data fetching and CPU bound items; the task runner could maintain 2 job queues / threadpools to maximise performance / throughput.
 
 If however, one wishes to assign only a certain portion of a system's resources to this context or even run in a single task at a time mode, then that can be done by providing an appropriate configured task runner.
+
+### I have a hybrid model where some of my code needs to be run single threaded, how do I do this?
+In this approach, e.g. when an underlying analytics layer which is used has some multi-threaded limitations, then one would be able to create a custom task runner which, through looking at the task objects which are submitted (IObjectBuildingTask<..>) could decide which thread pool to use for the given task based off the underlying builder which is being called.
+
+### I have a hybrid model where my code needs to be run in a separate process, how do I do this?
+**Note that the advice here is designed to cater for the use-case where there's a temporary graph rather than a long running persistent graph, for that a more resillient / persistent data store etc. would be needed**.
+
+If we needed to do this, then we'd either:
+
+1. wrap the submitted object builders from the object builder provider so that they can launch the processes etc.
+2. Talk to us, we'd add an additional interface (akin to IObjectBuildingTask<..>) allowing for task runners to extract out the actual dependencies and explicitly insert the result (as opposed to calling .Run(..)). A custom task runner would then have the responsibility for launching the child processes etc. 
+
+Note #2 is the recommended approach
 
 ### I have a new feature / performance improvement / suggestion etc.
 Please either raise an issue here or contact us.
