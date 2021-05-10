@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace BorsukSoftware.ObjectGraph
 {
-	public class RequestedDependencies<TAddress>
+	/// <summary>
+	/// Standard implementation of <see cref="IRequestedDependencies{TAddress}"/>
+	/// </summary>
+	/// <typeparam name="TAddress"></typeparam>
+	public class RequestedDependencies<TAddress> : IRequestedDependencies<TAddress>
 	{
 		/// <summary>
 		/// Gets whether or not dependencies are recursive
@@ -16,7 +20,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// <summary>
 		/// Gets the set of dependencies for this collection
 		/// </summary>
-		public ICollection<ObjectBuilders.IDependency<TAddress>> Dependencies { get; private set; }
+		public IReadOnlyCollection<ObjectBuilders.IDependency<TAddress>> Dependencies { get; private set; }
 
 		public RequestedDependencies( bool recursive, IEnumerable<ObjectBuilders.IDependency<TAddress>> dependencies )
 		{

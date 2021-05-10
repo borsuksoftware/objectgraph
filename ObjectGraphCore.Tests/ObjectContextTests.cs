@@ -257,7 +257,7 @@ namespace BorsukSoftware.ObjectGraph
 				} );
 
 			var context = new ObjectContext<Tuple<string, int>>( null, functionBasedOBP, _taskRunner );
-			var infoObjects = new List<ObjectBuildingInfo<Tuple<string, int>>>( 300 );
+			var infoObjects = new List<IObjectBuildingInfo<Tuple<string, int>>>( 300 );
 			for( int  idx = 0; idx< 16; idx++ ) {
 				var address = Tuple.Create( "Logic", idx );
 				infoObjects.Add( context.BuildObject( address ) );

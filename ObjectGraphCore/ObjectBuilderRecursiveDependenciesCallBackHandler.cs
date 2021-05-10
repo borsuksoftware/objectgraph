@@ -24,17 +24,17 @@ namespace BorsukSoftware.ObjectGraph
 		/// <summary>
 		/// The set of dependencies which are already 
 		/// </summary>
-		public ICollection<Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>>> Dependencies { get; private set; }
+		public ICollection<Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>>> Dependencies { get; private set; }
 
 		#endregion
 
 		public ObjectBuilderRecursiveDependenciesCallBackHandler( ObjectBuildingInfo<TAddress> objectBuildingInfo,
-			IEnumerable<Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>>> dependencies )
+			IEnumerable<Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>>> dependencies )
 		{
 			if( dependencies == null )
-				dependencies = new Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>> [ 0 ];
+				dependencies = new Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>> [ 0 ];
 
-			this.Dependencies = new List<Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>>>( dependencies );
+			this.Dependencies = new List<Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>>>( dependencies );
 			this.ObjectBuildingInfo = objectBuildingInfo;
 
 			this._outstandingDependencies = this.Dependencies.Count;
@@ -50,7 +50,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// <remarks>This functionality uses <see cref="System.Threading.Interlocked.Decrement(ref int)"/> in order to avoid
 		/// multiple locks / wait handles etc.</remarks>
 		/// <param name="dependency">The dependency which has just completed</param>
-		public void PostDependencyBuildCallBack( ObjectBuildingInfo<TAddress> dependency )
+		public void PostDependencyBuildCallBack( IObjectBuildingInfo<TAddress> dependency )
 		{
 			var outstanding = System.Threading.Interlocked.Decrement( ref _outstandingDependencies );
 			if( outstanding != 0 )
@@ -98,7 +98,7 @@ namespace BorsukSoftware.ObjectGraph
 				}
 				else if( additionalDependencies.RecursiveMode )
 				{
-					var dependencyTuples = new List<Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>>>();
+					var dependencyTuples = new List<Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>>>();
 					// Recursive mode
 					foreach( var dependency in combinedDependencies )
 					{

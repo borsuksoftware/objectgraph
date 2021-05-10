@@ -9,7 +9,7 @@ namespace BorsukSoftware.ObjectGraph.Tasks
 	/// <summary>
 	/// Multi-threaded task runner for use within the object graph framework
 	/// </summary>
-	public class TaskRunner
+	public class TaskRunner : ITaskRunner
 	{
 		#region Member variables
 
@@ -17,7 +17,7 @@ namespace BorsukSoftware.ObjectGraph.Tasks
 
 		private System.Threading.ManualResetEvent _resetEvent = new System.Threading.ManualResetEvent( false );
 
-		private Queue<IJob> _jobs = new Queue<IJob>();
+		private Queue<ITask> _tasks = new Queue<ITask>();
 
 		private List<System.Threading.Thread> _threads;
 
@@ -48,8 +48,9 @@ namespace BorsukSoftware.ObjectGraph.Tasks
 					Name = $"Thread Pool #{i}",
 					IsBackground = true
 				};
-				thread.SetApartmentState( System.Threading.ApartmentState.MTA );
-				thread.Start( i );
+
+				if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+					thread.SetApartmentState(System.Threading.ApartmentState.MTA); thread.Start( i );
 
 				_threads.Add( thread );
 			}
@@ -63,14 +64,14 @@ namespace BorsukSoftware.ObjectGraph.Tasks
 		/// Registers the given <see cref="Action"/> as a task to be subsequently performed
 		/// </summary>
 		/// <param name="action">The action to be performed</param>
-		public void RegisterJob( IJob action )
+		public void RegisterTask( ITask action )
 		{
 			if( action == null )
 				throw new ArgumentNullException( nameof( action ) );
 
-			lock( this._jobs )
+			lock( this._tasks )
 			{
-				_jobs.Enqueue( action );
+				_tasks.Enqueue( action );
 				_resetEvent.Set();
 			}
 		}
@@ -81,12 +82,12 @@ namespace BorsukSoftware.ObjectGraph.Tasks
 		public void StopThreads()
 		{
 			_quit = true;
-			lock( _jobs )
+			lock( _tasks )
 			{
-				IJob job;
-				while( _jobs.Any() )
+				ITask job;
+				while( _tasks.Any() )
 				{
-					job = _jobs.Dequeue();
+					job = _tasks.Dequeue();
 					try
 					{
 						job.Cancel();
@@ -112,11 +113,11 @@ namespace BorsukSoftware.ObjectGraph.Tasks
 				if( _quit )
 					return;
 
-				IJob job = null;
-				lock( _jobs )
+				ITask job = null;
+				lock( _tasks )
 				{
-					if( _jobs.Count > 0 )
-						job = _jobs.Dequeue();
+					if( _tasks.Count > 0 )
+						job = _tasks.Dequeue();
 					else
 						_resetEvent.Reset();
 				}

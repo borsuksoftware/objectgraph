@@ -6,3 +6,8 @@
 /ObjectGraphCore/obj
 /ObjectGraphInterfaces/obj
 /ObjectGraphCore.Tests/obj
+/ObjectGraphCore/bin
+/ObjectGraphCore/ObjectGraph.Core.xml
+/ObjectGraphCore.Tests/bin
+/ObjectGraphInterfaces/bin
+/ObjectGraphInterfaces/ObjectGraph.Interfaces.xml

@@ -10,7 +10,7 @@ namespace BorsukSoftware.ObjectGraph
 	/// Class representing the information around building a given address
 	/// </summary>
 	/// <typeparam name="TAddress">The type of the address</typeparam>
-	public class ObjectBuildingInfo<TAddress>
+	public class ObjectBuildingInfo<TAddress> : IObjectBuildingInfo<TAddress>
 	{
 		#region Member variables
 
@@ -28,21 +28,24 @@ namespace BorsukSoftware.ObjectGraph
 		/// <summary>
 		/// Gets the set of call backs which should be called when the object has finished building (or has failed to build)
 		/// </summary>
-		private LinkedList<Action<ObjectBuildingInfo<TAddress>>> _postBuildCallBacks = new LinkedList<Action<ObjectBuildingInfo<TAddress>>>();
+		private LinkedList<Action<IObjectBuildingInfo<TAddress>>> _postBuildCallBacks = new LinkedList<Action<IObjectBuildingInfo<TAddress>>>();
 
 		/// <summary>
 		/// Gets the set of call backs which should be called when the object's dependencies are known (or there has been a failure)
 		/// </summary>
-		private LinkedList<Action<ObjectBuildingInfo<TAddress>>> _postDependenciesKnownCallBacks = new LinkedList<Action<ObjectBuildingInfo<TAddress>>>();
+		private LinkedList<Action<IObjectBuildingInfo<TAddress>>> _postDependenciesKnownCallBacks = new LinkedList<Action<IObjectBuildingInfo<TAddress>>>();
 
 		#endregion
 
 		#region Public Data Model
 
+		System.Threading.WaitHandle IObjectBuildingInfo<TAddress>.DependenciesKnownOrFailureWaitHandle => this.DependenciesKnownOrFailureWaitHandle;
+		System.Threading.WaitHandle IObjectBuildingInfo<TAddress>.ObjectBuiltOrFailureWaitHandle => this.ObjectBuiltOrFailureWaitHandle;
+
 		/// <summary>
 		/// Gets the object context that this instance represents
 		/// </summary>
-		public ObjectContext<TAddress> ObjectContext { get; private set; }
+		public IObjectContext<TAddress> ObjectContext { get; private set; }
 
 		/// <summary>
 		/// Gets the address that this instance represents
@@ -86,7 +89,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// <summary>
 		/// Gets the set of dependencies which were requested for this instance (if available)
 		/// </summary>
-		public RequestedDependencies<TAddress> RequestedDependencies { get; private set; }
+		public IRequestedDependencies<TAddress> RequestedDependencies { get; private set; }
 
 		#endregion
 
@@ -98,19 +101,19 @@ namespace BorsukSoftware.ObjectGraph
 		/// <param name="objectContext">The object context that this building object is for</param>
 		/// <param name="address">The address that this building object is for</param>
 		/// <exception cref="ArgumentNullException">Thrown if either parameter is null</exception>
-		public ObjectBuildingInfo( ObjectContext<TAddress> objectContext, TAddress address )
+		public ObjectBuildingInfo(ObjectContext<TAddress> objectContext, TAddress address)
 		{
-			if( objectContext == null )
-				throw new ArgumentNullException( nameof( objectContext ) );
+			if (objectContext == null)
+				throw new ArgumentNullException(nameof(objectContext));
 
-			if( address == null )
-				throw new ArgumentNullException( nameof( address ) );
+			if (address == null)
+				throw new ArgumentNullException(nameof(address));
 
 			this.ObjectContext = objectContext;
 			this.Address = address;
 
-			this.DependenciesKnownOrFailureWaitHandle = new System.Threading.ManualResetEvent( false );
-			this.ObjectBuiltOrFailureWaitHandle = new System.Threading.ManualResetEvent( false );
+			this.DependenciesKnownOrFailureWaitHandle = new System.Threading.ManualResetEvent(false);
+			this.ObjectBuiltOrFailureWaitHandle = new System.Threading.ManualResetEvent(false);
 		}
 
 		#endregion
@@ -121,7 +124,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// Set the object builder to be used
 		/// </summary>
 		/// <param name="objectBuilder">The object builder</param>
-		public void SetObjectBuilder( ObjectBuilders.IObjectBuilder<TAddress> objectBuilder )
+		public void SetObjectBuilder(ObjectBuilders.IObjectBuilder<TAddress> objectBuilder)
 		{
 			this.ObjectBuilder = objectBuilder;
 		}
@@ -130,7 +133,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// Sets the set of dependencies that have been requested by this object
 		/// </summary>
 		/// <param name="requestedDependencies">The set of dependencies</param>
-		public void SetRequestedDependencies( RequestedDependencies<TAddress> requestedDependencies )
+		public void SetRequestedDependencies(IRequestedDependencies<TAddress> requestedDependencies)
 		{
 			this.RequestedDependencies = requestedDependencies;
 			this.ObjectBuildingState = ObjectBuildingStates.DependenciesKnown;
@@ -142,7 +145,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// Sets the built object for this address
 		/// </summary>
 		/// <param name="builtObject">The built object</param>
-		public void SetObjectBuilt( object builtObject )
+		public void SetObjectBuilt(object builtObject)
 		{
 			this.BuiltObject = builtObject;
 			this.ObjectBuildingState = ObjectBuildingStates.ObjectBuilt;
@@ -156,7 +159,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// Sets the object has having failed during construction
 		/// </summary>
 		/// <param name="ex">The exception which was thrown</param>
-		public void SetObjectFailed( Exception ex )
+		public void SetObjectFailed(Exception ex)
 		{
 			this.Exception = ex;
 			this.ObjectBuildingState = ObjectBuildingStates.Failure;
@@ -188,16 +191,16 @@ namespace BorsukSoftware.ObjectGraph
 		/// Requests that the object should be built
 		/// </summary>
 		/// <remarks>This call can be called as many times as desired, the object itself will only be built once</remarks>
-		public void RequestBuildObject()
+		public void RequestBuildObject(Tasks.ITaskRunner taskRunner)
 		{
-			var originalValue = System.Threading.Interlocked.CompareExchange( ref _buildObjectRequested, 1, 0 );
-			if( originalValue != 0 )
+			var originalValue = System.Threading.Interlocked.CompareExchange(ref _buildObjectRequested, 1, 0);
+			if (originalValue != 0)
 			{
 				// The object building has already been requested and therefore we can simply return
 				return;
 			}
 
-			BuildObject();
+			BuildObject(taskRunner);
 		}
 
 		/// <summary>
@@ -206,39 +209,38 @@ namespace BorsukSoftware.ObjectGraph
 		/// <remarks>
 		/// This should only be called once per instance and no internal checks are performed as to whether that that statement holds true or not
 		/// </remarks>
-		private void BuildObject()
+		private void BuildObject(Tasks.ITaskRunner taskRunner)
 		{
 			// We now have responsibility for building the item / requesting that the item is built...
 
 			var infoObj = this;
-			this.RegisterPostDependenciesKnownCallBack( ( address ) =>
-			{
-				if( this.ObjectBuildingState != ObjectBuildingStates.DependenciesKnown )
-					return;
+			this.RegisterPostDependenciesKnownCallBack((address) =>
+		   {
+			   if (this.ObjectBuildingState != ObjectBuildingStates.DependenciesKnown)
+				   return;
 
-				try
-				{
-					{
-						var dependencyObjectsBuildingInfo = new List<Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>>>();
+			   try
+			   {
+				   {
+					   var dependencyObjectsBuildingInfo = new List<Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>>>();
 
-						foreach( var dependency in this.RequestedDependencies.Dependencies )
-						{
-#warning Update to avoid cast
-							var dependencyObjectBuildingInfo = ( (ObjectContext<TAddress>) ( dependency.ObjectContext ?? this.ObjectContext ) ).BuildObject( dependency.Address );
-							dependencyObjectsBuildingInfo.Add( Tuple.Create( dependency, dependencyObjectBuildingInfo ) );
-						}
+					   foreach (var dependency in this.RequestedDependencies.Dependencies)
+					   {
+						   var dependencyObjectBuildingInfo = (dependency.ObjectContext ?? this.ObjectContext).BuildObject(dependency.Address);
+						   dependencyObjectsBuildingInfo.Add(Tuple.Create(dependency, dependencyObjectBuildingInfo));
+					   }
 
-						var callbackHandler = new ObjectBuilderCallBackHandler<TAddress>( infoObj, dependencyObjectsBuildingInfo );
+					   var callbackHandler = new ObjectBuilderCallBackHandler<TAddress>(taskRunner, infoObj, dependencyObjectsBuildingInfo);
 
-						foreach( var entry in dependencyObjectsBuildingInfo )
-							entry.Item2.RegisterPostBuildCallBack( callbackHandler.PostDependencyBuildCallBack );
-					}
-				}
-				catch( Exception ex )
-				{
-					this.SetObjectFailed( ex );
-				}
-			} );
+					   foreach (var entry in dependencyObjectsBuildingInfo)
+						   entry.Item2.RegisterPostBuildCallBack(callbackHandler.PostDependencyBuildCallBack);
+				   }
+			   }
+			   catch (Exception ex)
+			   {
+				   this.SetObjectFailed(ex);
+			   }
+		   });
 		}
 
 		#endregion
@@ -251,13 +253,13 @@ namespace BorsukSoftware.ObjectGraph
 		/// <remarks>This will be called whether the object suceeded or failed</remarks>
 		private void LaunchPostBuildCallBacks()
 		{
-			lock( this._postBuildCallBacks )
+			lock (this._postBuildCallBacks)
 			{
-				foreach( var callBack in _postBuildCallBacks )
+				foreach (var callBack in _postBuildCallBacks)
 				{
 					try
 					{
-						callBack( this );
+						callBack(this);
 					}
 					catch/*( Exception ex )*/
 					{
@@ -271,13 +273,13 @@ namespace BorsukSoftware.ObjectGraph
 
 		private void LaunchPostDependenciesKnownCallBacks()
 		{
-			lock( this._postDependenciesKnownCallBacks )
+			lock (this._postDependenciesKnownCallBacks)
 			{
-				foreach( var callBack in _postDependenciesKnownCallBacks )
+				foreach (var callBack in _postDependenciesKnownCallBacks)
 				{
 					try
 					{
-						callBack( this );
+						callBack(this);
 					}
 					catch/*( Exception ex )*/
 					{
@@ -296,30 +298,30 @@ namespace BorsukSoftware.ObjectGraph
 		/// to the thread pool.</remarks>
 		/// <param name="postBuildCallBack">The action to perform</param>
 		/// <exception cref="ArgumentNullException">If <paramref name="postBuildCallBack"/> is null</exception>
-		public void RegisterPostBuildCallBack( Action<ObjectBuildingInfo<TAddress>> postBuildCallBack )
+		public void RegisterPostBuildCallBack(Action<IObjectBuildingInfo<TAddress>> postBuildCallBack)
 		{
-			if( postBuildCallBack == null )
-				throw new ArgumentNullException( nameof( postBuildCallBack ) );
+			if (postBuildCallBack == null)
+				throw new ArgumentNullException(nameof(postBuildCallBack));
 
 			{
 				var state = this.ObjectBuildingState;
-				if( state == ObjectBuildingStates.ObjectBuilt || state == ObjectBuildingStates.Failure )
+				if (state == ObjectBuildingStates.ObjectBuilt || state == ObjectBuildingStates.Failure)
 				{
-					postBuildCallBack( this );
+					postBuildCallBack(this);
 					return;
 				}
 			}
 
-			lock( _postBuildCallBacks )
+			lock (_postBuildCallBacks)
 			{
 				var state = this.ObjectBuildingState;
-				if( state == ObjectBuildingStates.ObjectBuilt || state == ObjectBuildingStates.Failure )
+				if (state == ObjectBuildingStates.ObjectBuilt || state == ObjectBuildingStates.Failure)
 				{
-					postBuildCallBack( this );
+					postBuildCallBack(this);
 					return;
 				}
 
-				_postBuildCallBacks.AddLast( postBuildCallBack );
+				_postBuildCallBacks.AddLast(postBuildCallBack);
 			}
 		}
 
@@ -329,38 +331,38 @@ namespace BorsukSoftware.ObjectGraph
 		/// <remarks>The supplied call backs should be trivial in nature, e.g. adding dependent object construction jobs
 		/// to the thread pool.</remarks>
 		/// <param name="postDependenciesKnownCallBack">The call back to be performed</param>
-		public void RegisterPostDependenciesKnownCallBack( Action<ObjectBuildingInfo<TAddress>> postDependenciesKnownCallBack )
+		public void RegisterPostDependenciesKnownCallBack(Action<IObjectBuildingInfo<TAddress>> postDependenciesKnownCallBack)
 		{
-			if( postDependenciesKnownCallBack == null )
-				throw new ArgumentNullException( nameof( postDependenciesKnownCallBack ) );
+			if (postDependenciesKnownCallBack == null)
+				throw new ArgumentNullException(nameof(postDependenciesKnownCallBack));
 
 			{
 				var state = this.ObjectBuildingState;
-				switch( state )
+				switch (state)
 				{
 					case ObjectBuildingStates.DependenciesKnown:
 					case ObjectBuildingStates.Failure:
 					case ObjectBuildingStates.NoBuilderAvailable:
 					case ObjectBuildingStates.ObjectBuilt:
-						postDependenciesKnownCallBack( this );
+						postDependenciesKnownCallBack(this);
 						return;
 				}
 			}
 
-			lock( _postDependenciesKnownCallBacks )
+			lock (_postDependenciesKnownCallBacks)
 			{
 				var state = this.ObjectBuildingState;
-				switch( state )
+				switch (state)
 				{
 					case ObjectBuildingStates.DependenciesKnown:
 					case ObjectBuildingStates.Failure:
 					case ObjectBuildingStates.NoBuilderAvailable:
 					case ObjectBuildingStates.ObjectBuilt:
-						postDependenciesKnownCallBack( this );
+						postDependenciesKnownCallBack(this);
 						return;
 				}
 
-				_postDependenciesKnownCallBacks.AddLast( postDependenciesKnownCallBack );
+				_postDependenciesKnownCallBacks.AddLast(postDependenciesKnownCallBack);
 			}
 		}
 		#endregion

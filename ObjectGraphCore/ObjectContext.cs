@@ -25,7 +25,7 @@ namespace BorsukSoftware.ObjectGraph
 
 		public ObjectBuilders.IObjectBuilderProvider<TAddress> ObjectBuilderProvider { get; private set; }
 
-		public Tasks.TaskRunner TaskRunner { get; private set; }
+		public Tasks.ITaskRunner TaskRunner { get; private set; }
 
 		#endregion
 
@@ -39,7 +39,7 @@ namespace BorsukSoftware.ObjectGraph
 		/// <param name="taskRunner">The task runner for jobs for this context</param>
 		public ObjectContext( IObjectContext<TAddress> parentContext,
 			ObjectBuilders.IObjectBuilderProvider<TAddress> objectBuilderProvider,
-			Tasks.TaskRunner taskRunner )
+			Tasks.ITaskRunner taskRunner )
 		{
 			if( objectBuilderProvider == null )
 				throw new ArgumentNullException( nameof( objectBuilderProvider ) );
@@ -56,7 +56,31 @@ namespace BorsukSoftware.ObjectGraph
 
 		#region IObjectContext Members
 
-		public ObjectBuildingInfo<TAddress> GetDependencies( TAddress address )
+		public IObjectBuildingInfo<TAddress> GetDependencies(TAddress address)
+		{
+			return this.GetDependenciesInt(address);
+		}
+
+		/// <summary>
+		/// Tries to build the specified object
+		/// </summary>
+		/// <remarks>Control will be returned to the caller as soon as possible with any actual building
+		/// being done in the background.</remarks>
+		/// <param name="address">The address of the object to build</param>
+		/// <returns>An info object for the given address</returns>
+		public IObjectBuildingInfo<TAddress> BuildObject(TAddress address)
+		{
+			var info = this.GetDependenciesInt(address);
+
+			info.RequestBuildObject(this.TaskRunner);
+			return info;
+		}
+
+		#endregion
+
+		#region Building business logic
+
+		private ObjectBuildingInfo<TAddress> GetDependenciesInt( TAddress address )
 		{
 			if( address == null )
 				throw new ArgumentNullException( nameof( address ) );
@@ -83,11 +107,11 @@ namespace BorsukSoftware.ObjectGraph
 						( (ObjectBuilders.IObjectBuilderAsynchronousDependencies<TAddress>) objectBuilder ).GetDependenciesAsynchronously( address ) )
 					{
 						// Create a task to do discovery and then to perform the 
-						var job = new Tasks.ObjectBuilderGetDependenciesJob<TAddress>( this,
+						var job = new Tasks.ObjectBuilderGetDependenciesTask<TAddress>( this,
 							objectBuildingInfo,
 							address );
 
-						this.TaskRunner.RegisterJob( job );
+						this.TaskRunner.RegisterTask( job );
 					}
 					else
 					{
@@ -96,7 +120,7 @@ namespace BorsukSoftware.ObjectGraph
 
 						if( dependencies != null && dependencies.RecursiveMode )
 						{
-							var dependencyTuples = new List<Tuple<ObjectBuilders.IDependency<TAddress>, ObjectBuildingInfo<TAddress>>>();
+							var dependencyTuples = new List<Tuple<ObjectBuilders.IDependency<TAddress>, IObjectBuildingInfo<TAddress>>>();
 							// Recursive mode
 							foreach( var dependency in dependencies.Dependencies )
 							{
@@ -153,21 +177,6 @@ namespace BorsukSoftware.ObjectGraph
 				} );
 				return objectBuildingInfo;
 			}
-		}
-
-		/// <summary>
-		/// Tries to build the specified object
-		/// </summary>
-		/// <remarks>Control will be returned to the caller as soon as possible with any actual building
-		/// being done in the background.</remarks>
-		/// <param name="address">The address of the object to build</param>
-		/// <returns>An info object for the given address</returns>
-		public ObjectBuildingInfo<TAddress> BuildObject( TAddress address )
-		{
-			var info = this.GetDependencies( address );
-
-			info.RequestBuildObject();
-			return info;
 		}
 
 		#endregion
