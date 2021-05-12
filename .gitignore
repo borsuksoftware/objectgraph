@@ -3,11 +3,14 @@
 ################################################################################
 
 /.vs
-/ObjectGraphCore/obj
-/ObjectGraphInterfaces/obj
-/ObjectGraphCore.Tests/obj
-/ObjectGraphCore/bin
-/ObjectGraphCore/ObjectGraph.Core.xml
-/ObjectGraphCore.Tests/bin
-/ObjectGraphInterfaces/bin
-/ObjectGraphInterfaces/ObjectGraph.Interfaces.xml
+/ObjectGraph.Core/bin
+/ObjectGraph.Core/ObjectGraph.Core.csproj.user
+/ObjectGraph.Core/ObjectGraph.Core.xml
+/ObjectGraph.Core/obj
+
+/ObjectGraph.Interfaces/bin
+/ObjectGraph.Interfaces/ObjectGraph.Interfaces.xml
+/ObjectGraph.Interfaces/obj
+
+/ObjectGraph.Tests/bin
+/ObjectGraph.Tests/obj

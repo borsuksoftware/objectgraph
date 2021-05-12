@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>BorsukSoftware.ObjectGraph</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>BorsukSoftware.ObjectGraph.Interfaces</PackageId>
+    <Authors>Borsuk Software</Authors>
+    <Product>ObjectGraph</Product>
+    <Description>Contains the interfaces for driving / consuming object graphs</Description>
+    <PackageTags>objectgraph borsuksoftware</PackageTags>
+    <AssemblyName>ObjectGraph.Interfaces</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>ObjectGraph.Interfaces.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>ObjectGraph.Interfaces.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+</Project>

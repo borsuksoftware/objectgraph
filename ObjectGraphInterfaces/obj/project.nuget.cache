@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "O5JPta7B9m5Ov94MEeCb4l6nI66nNQuYMhE0vL65oZx7M7FJ+pEfnNNiOwSecyTGWUG8+8xi6ZM0HiNcx10epQ==",
+  "success": true,
+  "projectFilePath": "E:\\Programming\\git\\objectgraph\\ObjectGraphInterfaces\\ObjectGraph.Interfaces.csproj",
+  "expectedPackageFiles": [
+    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
