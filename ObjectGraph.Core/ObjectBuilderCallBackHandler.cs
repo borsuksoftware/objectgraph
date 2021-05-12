@@ -130,6 +130,38 @@ namespace BorsukSoftware.ObjectGraph
 
 		public IObjectBuilder<TAddress> ObjectBuilder => this.ObjectBuilderInfo.ObjectBuilder;
 
+		public IObjectBuilderBuildObjectContext<TAddress> BuildObjectContext => new ObjectBuilders.ObjectBuilderBuildObjectContext<TAddress>(this.ObjectBuilderInfo.ObjectContext);
+
+		IBuiltDependencies<TAddress> Tasks.IObjectBuildingTask<TAddress>.Dependencies
+        {
+			get
+			{
+				var dependencySet = new ObjectBuilders.BuiltDependencies<TAddress>();
+				//if (this.Dependencies.Any(tuple => tuple.Item2.ObjectBuildingState != ObjectBuildingStates.ObjectBuilt))
+				//{
+					//this.ObjectBuilderInfo.SetObjectFailed(new InvalidOperationException("Dependency Failed"));
+					//return dependencySet;
+				//}
+
+				foreach (var entry in this.Dependencies.Where( d => d.Item2.ObjectBuildingState == ObjectBuildingStates.ObjectBuilt))
+					dependencySet.AddDependency(entry.Item1.Name,
+						entry.Item1.Address,
+						entry.Item2.BuiltObject);
+
+				return dependencySet;
+			}
+		}
+
+		public void SetResult(object result)
+        {
+			this.ObjectBuilderInfo.SetObjectBuilt(result);
+        }
+
+		public void SetException(Exception exception )
+        {
+			this.ObjectBuilderInfo.SetObjectFailed(exception ?? new Exception());
+        }
+
 		#endregion
 	}
 }

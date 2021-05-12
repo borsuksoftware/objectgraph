@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace BorsukSoftware.ObjectGraph
@@ -479,6 +475,66 @@ namespace BorsukSoftware.ObjectGraph
 
 				return dataDependency.BuiltObject;
 			}
+		}
+
+        #endregion
+
+        #region Bypassing Task functionality
+
+		[TestMethod]
+		public void BypassingTaskFunctionality_Success()
+        {
+			var obp = new ObjectBuilders.Providers.FunctionBasedObjectBuilderProvider<int>((address) => {
+				return new ObjectBuilders.FunctionBasedObjectBuilder<int>(
+					(context, address) => { return new ObjectBuilders.DependencySet<int>(); },
+					(context, address, builtDependencies) => { return null; },
+					(context, address, dependencies) => throw new Exception("Don't call me")
+					);
+			});
+
+			var taskRunner = new Tasks.FunctionBasedTaskRunner((task) => {
+				var objectBuildingTask = task as Tasks.IObjectBuildingTask<int>;
+				if (objectBuildingTask == null)
+					throw new InvalidOperationException("Er....");
+
+				objectBuildingTask.SetResult(objectBuildingTask.Address * 2);
+			});
+
+			var objectContext = new ObjectContext<int>(null, obp, taskRunner);
+
+			var obj = objectContext.BuildObject(5);
+			Assert.IsTrue(obj.ObjectBuiltOrFailureWaitHandle.WaitOne());
+			Assert.AreEqual(ObjectBuildingStates.ObjectBuilt, obj.ObjectBuildingState);
+			Assert.AreEqual(10, obj.BuiltObject);
+        }
+
+		[TestMethod]
+		public void BypassingTaskFunctionality_Failure()
+		{
+			var exception = new Exception("Raaaaaaaaaaa");
+
+			var obp = new ObjectBuilders.Providers.FunctionBasedObjectBuilderProvider<int>((address) => {
+				return new ObjectBuilders.FunctionBasedObjectBuilder<int>(
+					(context, address) => { return new ObjectBuilders.DependencySet<int>(); },
+					(context, address, builtDependencies) => { return null; },
+					(context, address, dependencies) => throw new Exception("Don't call me")
+					);
+			});
+
+			var taskRunner = new Tasks.FunctionBasedTaskRunner((task) => {
+				var objectBuildingTask = task as Tasks.IObjectBuildingTask<int>;
+				if (objectBuildingTask == null)
+					throw new InvalidOperationException("Er....");
+
+				objectBuildingTask.SetException(exception);
+			});
+
+			var objectContext = new ObjectContext<int>(null, obp, taskRunner);
+
+			var obj = objectContext.BuildObject(5);
+			Assert.IsTrue(obj.ObjectBuiltOrFailureWaitHandle.WaitOne());
+			Assert.AreEqual(ObjectBuildingStates.Failure, obj.ObjectBuildingState);
+			Assert.AreSame(exception, obj.Exception);
 		}
 
 		#endregion
