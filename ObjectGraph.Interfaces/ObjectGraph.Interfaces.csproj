@@ -9,7 +9,10 @@
     <Product>ObjectGraph</Product>
     <Description>Contains the interfaces for driving / consuming object graphs</Description>
     <PackageTags>objectgraph borsuksoftware</PackageTags>
-    <AssemblyName>ObjectGraph.Interfaces</AssemblyName>
+    <AssemblyName>BorsukSoftware.ObjectGraph.Interfaces</AssemblyName>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>logo.png</PackageIcon>
+    <Copyright>2017-21 Borsuk Software</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -22,6 +25,17 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

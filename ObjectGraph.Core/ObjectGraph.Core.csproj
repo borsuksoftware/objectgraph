@@ -10,15 +10,18 @@
     <Description>Contains the main implementation of object graph</Description>
     <PackageTags>objectgraph borsuksoftware</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <AssemblyName>ObjectGraph.Core</AssemblyName>
+    <AssemblyName>BorsukSoftware.ObjectGraph.Core</AssemblyName>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Copyright>2017-21 Borsuk Software</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>ObjectGraph.Core.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\BorsukSoftware.ObjectGraph.Core.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>ObjectGraph.Core.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\BorsukSoftware.ObjectGraph.Core.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +30,17 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
